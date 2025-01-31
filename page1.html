@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Suggestions with LLM</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        /* Spinner styles */
+        .spinner-border {
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body data-bs-theme="light">
+    <div class="container mt-4">
+        <h1 class="text-center text-primary">Job Suggestion Model</h1>
+        
+        <div class="mt-4">
+            <form id="jobForm" aria-labelledby="jobForm">
+                <div class="mb-3">
+                    <label for="skillsInput" class="form-label">Your Skills:</label>
+                    <input type="text" class="form-control" id="skillsInput" placeholder="e.g., Python, Machine Learning, SQL" aria-label="Skills Input" required>
+                </div>
+                <div class="mb-3">
+                    <label for="locationInput" class="form-label">Preferred Location:</label>
+                    <input type="text" class="form-control" id="locationInput" placeholder="e.g., New York, Remote" aria-label="Location Input" required>
+                </div>
+                <button type="button" class="btn btn-primary w-100" onclick="getJobSuggestions()">Find Jobs</button>
+                <div class="text-center mt-3">
+                    <div class="spinner-border" role="status" id="loadingSpinner">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div id="jobResults" class="mt-4">
+            <!-- Job suggestions will appear here -->
+        </div>
+        
+        <div class="mt-4 text-center">
+            <button class="btn btn-secondary" onclick="window.location.href='/'">Go Back to Main Page</button>
+        </div>
+    </div>
+
+    <script>
+        async function getJobSuggestions() {
+            const skills = document.getElementById('skillsInput').value.trim();
+            const location = document.getElementById('locationInput').value.trim();
+            const jobResults = document.getElementById('jobResults');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            if (!skills || !location) {
+                alert('Please enter both skills and location.');
+                return;
+            }
+
+            jobResults.innerHTML = ''; // Clear previous results
+            loadingSpinner.style.display = 'block'; // Show loading spinner
+
+            try {
+                const response = await fetch('/get_jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ skills, location })
+                });
+
+                console.log('Response Status:', response.status); // Debug status
+                const data = await response.json();
+                console.log('Response Data:', data); // Debug raw data
+
+                loadingSpinner.style.display = 'none'; // Hide loading spinner
+
+                if (data.jobs && data.jobs.length > 0) {
+                    jobResults.innerHTML = data.jobs.map(job => `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">${job.title || 'N/A'}</h5>
+                                <p class="card-text"><strong>Company:</strong> ${job.company || 'N/A'}</p>
+                                <p class="card-text"><strong>Location:</strong> ${job.location || 'N/A'}</p>
+                                <a href="${job.url}" target="_blank" class="btn btn-primary">Apply</a>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    jobResults.innerHTML = '<p>No jobs found. Please refine your search.</p>';
+                }
+            } catch (error) {
+                console.error('Error:', error); // Log errors
+                loadingSpinner.style.display = 'none'; // Hide loading spinner
+                jobResults.innerHTML = `<p class="text-danger">An error occurred: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
